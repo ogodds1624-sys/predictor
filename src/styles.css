@@ -173,13 +173,33 @@
   }
 }
 
+.signal-loading-text {
+  animation: signal-loading-text 1.2s ease-in-out infinite;
+}
+
+@keyframes signal-loading-text {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.motion-restart .ping,
+.motion-restart .dash-ring,
+.motion-restart .scanline,
+.motion-restart .coef-float,
+.motion-restart .float-loop,
+.motion-restart .signal-loading-text,
+.motion-restart .coef-flash {
+  animation: none;
+}
+
 .signal-load {
   height: 100%;
   width: 100%;
   border-radius: 9999px;
   background: #ff3b30;
   transform-origin: left center;
-  animation: signal-load 10s linear forwards;
+  animation: signal-load 30s linear forwards;
 }
 
 @keyframes signal-load {
@@ -196,7 +216,8 @@
   .coef-flash,
   .coef-float,
   .float-loop,
-  .signal-load {
+  .signal-load,
+  .signal-loading-text {
     animation: none;
   }
 }

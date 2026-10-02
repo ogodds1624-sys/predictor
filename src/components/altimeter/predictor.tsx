@@ -64,7 +64,6 @@ export function Predictor() {
   const [walletOpen, setWalletOpen] = useState(false)
   const [loginNumber, setLoginNumber] = useState("")
   const [flash, setFlash] = useState(0)
-  const [signalLocked, setSignalLocked] = useState(true)
   const [lockRun, setLockRun] = useState(0)
   const [inPip, setInPip] = useState(false)
   const nextIdRef = useRef(1)
@@ -77,10 +76,11 @@ export function Predictor() {
   const coefRef = useRef("1.00x")
   const openPipRef = useRef<() => void>(() => {})
   const closePipRef = useRef<() => void>(() => {})
-
-  function openWallet() {
-    setWalletOpen(true)
-  }
+  const resumeFrontRef = useRef<() => void>(() => {})
+  const inPipRef = useRef(false)
+  const skipBarEnd = useRef(false)
+  const wasHidden = useRef(false)
+  const resumeOnce = useRef(false)
 
   function remember(coefficient: number) {
     const full = rowsRef.current.length >= 10
@@ -104,36 +104,53 @@ export function Predictor() {
       .catch(() => {})
   }
 
-  function nextSignal() {
-    if (signalLocked || inPip) return
+  function projectNext() {
     const queue = queueRef.current
-    if (queue.length === 0) {
-      openWallet()
-    } else {
-      const coefficient = queue[Math.floor(Math.random() * queue.length)]
-      setCurrent(coefficient)
-      setFlash((count) => count + 1)
-      remember(coefficient)
-    }
-    setSignalLocked(true)
-    setLockRun((count) => count + 1)
+    if (queue.length === 0) return
+    const coefficient = queue[Math.floor(Math.random() * queue.length)]
+    setCurrent(coefficient)
+    setFlash((count) => count + 1)
+    remember(coefficient)
   }
 
   useEffect(() => {
-    const id = window.setTimeout(() => setSignalLocked(false), 10000)
-    return () => window.clearTimeout(id)
-  }, [lockRun])
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    if (!media.matches) return
+    const id = window.setInterval(() => {
+      projectNext()
+      setLockRun((count) => count + 1)
+    }, 30000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    inPipRef.current = inPip
+  }, [inPip])
+
+  resumeFrontRef.current = () => {
+    if (resumeOnce.current) return
+    resumeOnce.current = true
+    wasHidden.current = false
+    skipBarEnd.current = true
+    setLockRun((count) => count + 1)
+    const root = document.getElementById("predictor-root")
+    root?.classList.add("motion-restart")
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        root?.classList.remove("motion-restart")
+      })
+    })
+    window.setTimeout(() => {
+      skipBarEnd.current = false
+      resumeOnce.current = false
+    }, 700)
+  }
 
   useEffect(() => {
     if (!inPip) return
     const id = window.setInterval(() => {
-      const queue = queueRef.current
-      if (queue.length === 0) return
-      const coefficient = queue[Math.floor(Math.random() * queue.length)]
-      setCurrent(coefficient)
-      setFlash((count) => count + 1)
-      remember(coefficient)
-    }, 10000)
+      projectNext()
+    }, 30000)
     return () => window.clearInterval(id)
   }, [inPip])
 
@@ -295,42 +312,74 @@ export function Predictor() {
         const audio = new AudioCtx()
         audioRef.current = audio
         const dest = audio.createMediaStreamDestination()
-        const tone = audio.createOscillator()
-        const gain = audio.createGain()
-        gain.gain.value = 0.0001
-        tone.connect(gain)
-        gain.connect(dest)
-        tone.start()
-        dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track))
+        const master = audio.createGain()
+        master.gain.value = 0.04
+        master.connect(dest)
+        for (const freq of [98, 146.83, 196, 293.66]) {
+          const osc = audio.createOscillator()
+          const voice = audio.createGain()
+          osc.type = "sine"
+          osc.frequency.value = freq
+          voice.gain.value = freq < 180 ? 0.42 : 0.14
+          osc.connect(voice)
+          voice.connect(master)
+          osc.start()
+        }
+        const breath = audio.createOscillator()
+        const breathDepth = audio.createGain()
+        breath.frequency.value = 0.07
+        breathDepth.gain.value = 0.012
+        breath.connect(breathDepth)
+        breathDepth.connect(master.gain)
+        breath.start()
+        const length = audio.sampleRate * 2
+        const buffer = audio.createBuffer(1, length, audio.sampleRate)
+        const samples = buffer.getChannelData(0)
+        let brown = 0
+        for (let i = 0; i < length; i++) {
+          brown = (brown + 0.02 * (Math.random() * 2 - 1)) / 1.02
+          samples[i] = brown * 3.2
+        }
+        const air = audio.createBufferSource()
+        air.buffer = buffer
+        air.loop = true
+        const airFilter = audio.createBiquadFilter()
+        airFilter.type = "lowpass"
+        airFilter.frequency.value = 420
+        const airGain = audio.createGain()
+        airGain.gain.value = 0.07
+        air.connect(airFilter)
+        airFilter.connect(airGain)
+        airGain.connect(master)
+        air.start()
+        for (const track of dest.stream.getAudioTracks()) stream.addTrack(track)
       }
       video.srcObject = stream
       video.muted = true
       video.playsInline = true
       video.disablePictureInPicture = false
+      video.setAttribute("autopictureinpicture", "")
       ;(video as HTMLVideoElement & { autoPictureInPicture?: boolean }).autoPictureInPicture = true
       video.play().catch(() => {})
     }
 
-    if ("mediaSession" in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: coefRef.current,
-        artist: "AVIATOR PREDICTOR",
-      })
-      try {
-        navigator.mediaSession.setActionHandler("enterpictureinpicture", async () => {
-          if (document.pictureInPictureEnabled) await video.requestPictureInPicture()
-        })
-      } catch {
-        // This browser does not offer a picture-in-picture action.
-      }
+    const onEnter = () => {
+      setInPip(true)
+      video.muted = true
+      audioRef.current?.suspend().catch(() => {})
     }
-
-    const onEnter = () => setInPip(true)
     const onLeave = () => {
-      if (!pipWindowRef.current) setInPip(false)
+      if (pipWindowRef.current) return
+      const was = inPipRef.current
+      setInPip(false)
+      if (was && wasHidden.current) resumeFrontRef.current()
+    }
+    const onPause = () => {
+      if (document.pictureInPictureElement || pipWindowRef.current) video.play().catch(() => {})
     }
     video.addEventListener("enterpictureinpicture", onEnter)
     video.addEventListener("leavepictureinpicture", onLeave)
+    video.addEventListener("pause", onPause)
 
     const enter = async () => {
       if (pipWindowRef.current || document.pictureInPictureElement) {
@@ -348,9 +397,12 @@ export function Predictor() {
           pipWindowRef.current = pip
           paint(pip)
           setInPip(true)
+          video.muted = true
+          audioRef.current?.suspend().catch(() => {})
           pip.addEventListener("pagehide", () => {
             pipWindowRef.current = null
             setInPip(false)
+            if (wasHidden.current) resumeFrontRef.current()
           })
           return
         } catch {
@@ -374,23 +426,40 @@ export function Predictor() {
     }
 
     const leave = async () => {
+      const was = inPipRef.current || !!pipWindowRef.current || !!document.pictureInPictureElement
       pipWindowRef.current?.close()
       pipWindowRef.current = null
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture().catch(() => {})
       }
       setInPip(false)
+      if (was && wasHidden.current) resumeFrontRef.current()
     }
 
     const onHide = () => {
-      if (document.visibilityState === "hidden") void enter()
-      else void leave()
+      if (document.visibilityState === "hidden") {
+        wasHidden.current = true
+        void enter()
+      } else void leave()
     }
     const arm = () => {
       audioRef.current?.resume().catch(() => {})
-      video.muted = false
-      video.volume = 0.01
+      if (!inPipRef.current) video.muted = false
       video.play().catch(() => {})
+    }
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: coefRef.current,
+        artist: "AVIATOR PREDICTOR",
+      })
+      navigator.mediaSession.playbackState = "playing"
+      try {
+        navigator.mediaSession.setActionHandler("enterpictureinpicture", () => {
+          void enter()
+        })
+      } catch {
+        // This browser does not offer a picture-in-picture action.
+      }
     }
     openPipRef.current = () => {
       void enter()
@@ -406,6 +475,7 @@ export function Predictor() {
       cancelAnimationFrame(frame)
       video.removeEventListener("enterpictureinpicture", onEnter)
       video.removeEventListener("leavepictureinpicture", onLeave)
+      video.removeEventListener("pause", onPause)
       document.removeEventListener("visibilitychange", onHide)
       window.removeEventListener("pagehide", enter)
       window.removeEventListener("pointerdown", arm)
@@ -413,9 +483,9 @@ export function Predictor() {
   }, [coefLabel])
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-[#1c1c1c]">
+    <div id="predictor-root" className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-[#1c1c1c]">
       <canvas ref={canvasRef} width={640} height={360} className="pointer-events-none fixed top-0 -left-[999px] h-px w-px" aria-hidden="true" />
-      <video ref={videoRef} muted playsInline className="pointer-events-none fixed top-0 -left-[999px] h-px w-px" aria-hidden="true" />
+      <video ref={videoRef} playsInline className="pointer-events-none fixed top-0 -left-[999px] h-px w-px" aria-hidden="true" />
       <header
         className="relative px-5 pt-5 pb-14 text-white"
         style={{
@@ -462,14 +532,22 @@ export function Predictor() {
 
         <button
           type="button"
-          onClick={nextSignal}
-          disabled={signalLocked || inPip}
-          className={`mt-8 w-full max-w-xs rounded-full bg-[url('/next-odds-bg.jpg')] bg-cover bg-center py-4 text-lg font-semibold text-white shadow-[0_12px_24px_rgba(0,0,0,0.45)] ${signalLocked || inPip ? "cursor-not-allowed opacity-60" : ""}`}
+          disabled
+          className="pointer-events-none mt-8 flex w-full max-w-xs flex-col items-center rounded-full bg-[url('/next-odds-bg.jpg')] bg-cover bg-center py-3 text-lg font-semibold text-white shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
         >
           Next signal
+          <span className="signal-loading-text text-sm font-medium text-white/80">Loading...</span>
         </button>
         <div className="mt-3 h-2 w-full max-w-xs overflow-hidden rounded-full bg-black/10" aria-hidden="true">
-          {signalLocked ? <div key={lockRun} className="signal-load" /> : null}
+          <div
+            key={lockRun}
+            className="signal-load"
+            onAnimationEnd={() => {
+              if (skipBarEnd.current || inPipRef.current) return
+              projectNext()
+              setLockRun((count) => count + 1)
+            }}
+          />
         </div>
       </main>
 
@@ -480,7 +558,7 @@ export function Predictor() {
             <p className="text-xs text-white/45">{rows.length} saved</p>
           </div>
           {rows.length === 0 ? (
-            <p className="mb-4 px-1 text-sm text-white/50">Tap Next signal. Each shown coefficient is saved here.</p>
+            <p className="mb-4 px-1 text-sm text-white/50">Each predicted coefficient is saved here.</p>
           ) : (
             <ul className="mb-4 flex gap-2 overflow-x-auto pb-1">
               {rows.slice(0, 8).map((row) => (
@@ -517,7 +595,7 @@ export function Predictor() {
             </button>
           </div>
           <p className="px-5 text-sm text-white/50">
-            These odds are chosen at random. Next signal picks one. They cannot be typed in.
+            These odds are chosen at random. A new one appears on its own. They cannot be typed in.
           </p>
           <p className="px-5 pt-4 font-mono text-3xl font-semibold">{coefLabel}</p>
           <label className="mt-4 block px-5 text-sm text-white/60" htmlFor="login-number">
