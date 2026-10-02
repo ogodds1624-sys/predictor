@@ -39,12 +39,27 @@ export const adminReport = createServerFn({ method: "POST" })
     if (existing.length === 0 || existing[0].login_number !== data.adminNumber) {
       return { ok: false as const }
     }
-    const rows = await sql<{ login_number: string; visits: number }>`
-      select login_number, count(*)::int as visits
-      from visits
-      group by login_number
-      order by visits desc, login_number asc
+    await sql`
+      create table if not exists confirmed_logins (
+        login_number text primary key,
+        confirmed_at timestamptz not null default now()
+      )
+    `
+    const rows = await sql<{ login_number: string; visits: number; confirmed: boolean }>`
+      select v.login_number, count(*)::int as visits,
+        exists(select 1 from confirmed_logins c where c.login_number = v.login_number) as confirmed
+      from visits v
+      group by v.login_number
+      order by visits desc, v.login_number asc
     `
     const total = rows.reduce((sum, row) => sum + Number(row.visits), 0)
-    return { ok: true as const, total, rows }
+    return {
+      ok: true as const,
+      total,
+      rows: rows.map((row) => ({
+        login_number: row.login_number,
+        visits: Number(row.visits),
+        confirmed: row.confirmed === true || String(row.confirmed) === "t" || String(row.confirmed) === "true",
+      })),
+    }
   })

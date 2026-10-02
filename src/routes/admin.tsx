@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { confirmVisitor } from "@/lib/access.functions"
 import { adminReport, adminStatus, claimAdmin } from "@/lib/visits.functions"
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
 })
 
-type Row = { login_number: string; visits: number }
+type Row = { login_number: string; visits: number; confirmed?: boolean }
 
 function AdminPage() {
   const [claimed, setClaimed] = useState<boolean | null>(null)
@@ -41,6 +42,23 @@ function AdminPage() {
         return
       }
       setClaimed(true)
+      await load()
+    } catch {
+      setError("Use 4 to 12 digits.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function onConfirm(visitorNumber: string) {
+    setError("")
+    setPending(true)
+    try {
+      const result = await confirmVisitor({ data: { adminNumber, visitorNumber } })
+      if (!result.ok) {
+        setError("That is not the admin number.")
+        return
+      }
       await load()
     } catch {
       setError("Use 4 to 12 digits.")
@@ -130,9 +148,21 @@ function AdminPage() {
                 <li className="py-4 text-sm text-white/50">No visits yet.</li>
               ) : (
                 rows.map((row) => (
-                  <li key={row.login_number} className="flex items-center justify-between py-3">
+                  <li key={row.login_number} className="flex items-center justify-between gap-3 py-3">
                     <span className="font-mono text-lg">{row.login_number}</span>
                     <span className="text-sm text-white/70">{row.visits} visits</span>
+                    {row.confirmed ? (
+                      <span className="text-sm text-[#3ddc84]">Confirmed</span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => void onConfirm(row.login_number)}
+                        className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#111] disabled:opacity-50"
+                      >
+                        Confirm
+                      </button>
+                    )}
                   </li>
                 ))
               )}
