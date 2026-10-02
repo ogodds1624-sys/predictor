@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "AVIATOR PREDICTOR",
+      "hasCanvas": false,
+      "bodyTextLen": 174,
+      "bodyTextHash": "606c222599acaaf1c373856016c3f7ca72141b47800ca356d634a98a860cd7ad",
+      "bodyTextPrefix": "AVIATORPREDICTOR 1.00x Predictedcoefficient NextOdds Signalrecor",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "AVIATOR PREDICTOR",
+      "hasCanvas": false,
+      "bodyTextLen": 174,
+      "bodyTextHash": "606c222599acaaf1c373856016c3f7ca72141b47800ca356d634a98a860cd7ad",
+      "bodyTextPrefix": "AVIATORPREDICTOR 1.00x Predictedcoefficient NextOdds Signalrecor",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

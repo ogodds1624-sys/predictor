@@ -1,0 +1,40 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Altimeter",
+      "hasCanvas": false,
+      "bodyTextLen": 215,
+      "bodyTextHash": "b3933e259de9294c8d9cd88b786263fba77fd5bc1653f88d575cecb594bc22a3",
+      "bodyTextPrefix": "LIVE SIGNAL Round 29 BOARDING PREDICTING SKIP 1.50× 1.00× Gate c",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Altimeter",
+      "hasCanvas": false,
+      "bodyTextLen": 215,
+      "bodyTextHash": "6bb751e1fc5e174643f2fc0e8efc4ac37e55b42ddfe52c2f7bbc36a0077828f9",
+      "bodyTextPrefix": "LIVE SIGNAL Round 29 BOARDING PREDICTING TAKE 3.50× 1.00× Gate c",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: body text replaced (similar length, page start changed)"
+  ]
+}

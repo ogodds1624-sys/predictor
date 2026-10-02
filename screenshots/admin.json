@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/admin",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "AVIATOR PREDICTOR",
+      "hasCanvas": false,
+      "bodyTextLen": 116,
+      "bodyTextHash": "3a2b2ab9f991e3e1a18af4b87b62672173b3fd40c15ef295a819e4e5dc73540f",
+      "bodyTextPrefix": "Admin Back Visit counts and login numbers stay on this page. Vis",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/admin.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "AVIATOR PREDICTOR",
+      "hasCanvas": false,
+      "bodyTextLen": 116,
+      "bodyTextHash": "3a2b2ab9f991e3e1a18af4b87b62672173b3fd40c15ef295a819e4e5dc73540f",
+      "bodyTextPrefix": "Admin Back Visit counts and login numbers stay on this page. Vis",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/admin-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/admin.json"
+}
